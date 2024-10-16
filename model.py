@@ -1,16 +1,17 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.impute import SimpleImputer
-from sklearn.pipeline import make_pipeline
-from sklearn.model_selection import cross_val_score
-from sklearn.metrics import roc_auc_score, accuracy_score, roc_curve
-from sklearn.preprocessing import StandardScaler, PowerTransformer
+from sklearn.metrics import roc_auc_score, accuracy_score, roc_curve, classification_report
+from sklearn.preprocessing import PowerTransformer
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC
+from sklearn.decomposition import PCA
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
-#evaluate accuracy 
 
+
+#evaluate accuracy
 def tprAtFPR(labels,outputs,desiredFPR):
     fpr,tpr,thres = roc_curve(labels,outputs)
     # True positive rate for highest false positive rate < 0.01
@@ -24,31 +25,46 @@ def tprAtFPR(labels,outputs,desiredFPR):
              + tprBelow)
     return tprAt,fpr,tpr
 
-def predictTest(trainFeatures,trainLabels,testFeatures): 
-    # Normalize the data using PowerTransformer for both training and test sets
-    scaler = PowerTransformer(method='yeo-johnson')
-
-    # Handle missing values in the training and test sets
-    mean_imputer = SimpleImputer(missing_values=-1, strategy='median')
-
+#this encompasses all processes we do to the data before we run it through the model
+def pre_pipe(trainFeatures, trainLabels, testFeatures):
+    #-----------imputation------------
+     # Handle missing values in the training and test sets
+    median_imputer = SimpleImputer(missing_values=-1, strategy='median')
     # Impute missing values in the training features
-    trainFeatures_imputed = mean_imputer.fit_transform(trainFeatures)
-    
+    trainFeatures_imputed = median_imputer.fit_transform(trainFeatures)
     # Impute missing values in the test features
-    testFeatures_imputed = mean_imputer.transform(testFeatures)
+    testFeatures_imputed = median_imputer.transform(testFeatures)
 
+    #-----------standardization------------
+
+
+    #-----------normalization---------
+    # Normalize the data using PowerTransformer for both training and test sets
+    '''
+    scaler = PowerTransformer(method='yeo-johnson')
     # Scale and transform the training features
     trainFeatures_transformed = scaler.fit_transform(trainFeatures_imputed)
-
     # Transform the test features based on the training set scaling
-    testFeatures_transformed = scaler.transform(testFeatures_imputed)
+    testFeatures_transformed = scaler.transform(testFeatures_imputed)'''
+    
+    #-----------feature reduction---------
+    lda = LinearDiscriminantAnalysis(n_components=1)
+    X_train_lda = lda.fit_transform(trainFeatures_imputed, trainLabels)
+    X_test_lda = lda.transform(testFeatures_imputed)
+    
+    return X_train_lda, X_test_lda
+
+
+def predictTest(trainFeatures,trainLabels,testFeatures):
+    #Get the processed data
+    trainFeatures_processed, testFeatures_processed = pre_pipe(trainFeatures, trainLabels, testFeatures)
 
     # Initialize and train a Logistic Regression classifier
-    classifier = LogisticRegression(solver='liblinear', random_state=1, C=10)
-    classifier.fit(trainFeatures_transformed, trainLabels)
+    classifier = SVC(kernel='rbf', C = 10, random_state=1)
+    classifier.fit(trainFeatures_processed, trainLabels)
 
     # Make predictions on the test features
-    predictions = classifier.predict(testFeatures_transformed)
+    predictions = classifier.predict(testFeatures_processed)
     
     return predictions
 
@@ -57,7 +73,6 @@ if __name__ == "__main__":
     np.random.seed(1)
     desiredFPR = 0.01
 
-    
     # Import data and shuffle it
     data = np.loadtxt('spamTrain1.csv', delimiter=',')
     shuffleIndex = np.arange(np.shape(data)[0])
@@ -82,10 +97,13 @@ if __name__ == "__main__":
     aucTestRun = roc_auc_score(y_test,predictions)
     tprAtDesiredFPR,fpr,tpr = tprAtFPR(y_test,predictions,desiredFPR)
 
+    report = classification_report(y_test, predictions)
+
     plt.plot(fpr,tpr)
 
     print(f'Test set AUC: {aucTestRun}')
     print(f'TPR at FPR = {desiredFPR}: {tprAtDesiredFPR}')
+    print("Classification Report:\n", report)
     plt.xlabel('False positive rate')
     plt.ylabel('True positive rate')
     plt.title('ROC curve for spam detector')    
