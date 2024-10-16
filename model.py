@@ -40,17 +40,17 @@ def pre_pipe(trainFeatures, trainLabels, testFeatures):
 
     #-----------normalization---------
     # Normalize the data using PowerTransformer for both training and test sets
-    '''
+    
     scaler = PowerTransformer(method='yeo-johnson')
     # Scale and transform the training features
     trainFeatures_transformed = scaler.fit_transform(trainFeatures_imputed)
     # Transform the test features based on the training set scaling
-    testFeatures_transformed = scaler.transform(testFeatures_imputed)'''
+    testFeatures_transformed = scaler.transform(testFeatures_imputed)
     
     #-----------feature reduction---------
     lda = LinearDiscriminantAnalysis(n_components=1)
-    X_train_lda = lda.fit_transform(trainFeatures_imputed, trainLabels)
-    X_test_lda = lda.transform(testFeatures_imputed)
+    X_train_lda = lda.fit_transform(trainFeatures_transformed, trainLabels)
+    X_test_lda = lda.transform(testFeatures_transformed)
     
     return X_train_lda, X_test_lda
 
