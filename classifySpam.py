@@ -67,4 +67,4 @@ if __name__ == "__main__":
     plt.plot(np.arange(nTestExamples),testOutputs[sortIndex],'r.')
     plt.xlabel('Sorted example number')
     plt.ylabel('Output (predicted target)')
-    
+    plt.show()

@@ -8,7 +8,7 @@ Script used to evaluate classifier accuracy
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_auc_score,roc_curve
-from classifySpam import predictTest
+from forest_model import predictTest
 
 desiredFPR = 0.01
 trainDataFilename = 'spamTrain1.csv'
@@ -45,7 +45,7 @@ testData = testData[shuffleIndex,:]
 testFeatures = testData[:,:-1]
 testLabels = testData[:,-1]
 
-testOutputs = predictTest(trainFeatures,trainLabels,testFeatures)
+testOutputs = predict(trainFeatures,trainLabels,testFeatures)
 aucTestRun = roc_auc_score(testLabels,testOutputs)
 tprAtDesiredFPR,fpr,tpr = tprAtFPR(testLabels,testOutputs,desiredFPR)
 
