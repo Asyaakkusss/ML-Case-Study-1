@@ -4,7 +4,7 @@ from sklearn.impute import SimpleImputer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import cross_val_score
-from sklearn.metrics import roc_auc_score, accuracy_score, roc_curve
+from sklearn.metrics import roc_auc_score, accuracy_score, roc_curve, classification_report
 from sklearn.preprocessing import StandardScaler, PowerTransformer
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
@@ -80,6 +80,7 @@ if __name__ == "__main__":
     plt.ylabel('True positive rate')    
     plt.title('ROC curve for spam detector')    
     plt.show()
+
     # Examine outputs compared to labels
     sortIndex = np.argsort(testLabels)
     nTestExamples = testLabels.size

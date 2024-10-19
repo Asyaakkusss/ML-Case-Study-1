@@ -1,110 +1,102 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.impute import SimpleImputer
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.pipeline import make_pipeline
+from sklearn.model_selection import cross_val_score, train_test_split
 from sklearn.metrics import roc_auc_score, accuracy_score, roc_curve, classification_report
 from sklearn.preprocessing import PowerTransformer
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split
-from sklearn.svm import SVC
-from sklearn.decomposition import PCA
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
 
-
-#evaluate accuracy
-def tprAtFPR(labels,outputs,desiredFPR):
-    fpr,tpr,thres = roc_curve(labels,outputs)
-    # True positive rate for highest false positive rate < 0.01
-    maxFprIndex = np.where(fpr<=desiredFPR)[0][-1]
+# Evaluate true positive rate at a specific false positive rate
+def tprAtFPR(labels, outputs, desiredFPR):
+    fpr, tpr, _ = roc_curve(labels, outputs)
+    maxFprIndex = np.where(fpr <= desiredFPR)[0][-1]
     fprBelow = fpr[maxFprIndex]
-    fprAbove = fpr[maxFprIndex+1]
-    # Find TPR at exactly desired FPR by linear interpolation
+    fprAbove = fpr[maxFprIndex + 1]
     tprBelow = tpr[maxFprIndex]
-    tprAbove = tpr[maxFprIndex+1]
-    tprAt = ((tprAbove-tprBelow)/(fprAbove-fprBelow)*(desiredFPR-fprBelow) 
-             + tprBelow)
-    return tprAt,fpr,tpr
+    tprAbove = tpr[maxFprIndex + 1]
+    tprAt = ((tprAbove - tprBelow) / (fprAbove - fprBelow) * (desiredFPR - fprBelow) + tprBelow)
+    return tprAt, fpr, tpr
 
-#this encompasses all processes we do to the data before we run it through the model
+# Cross-validate the AUC score of the model
+def aucCV(features, labels):
+    model = make_pipeline(SimpleImputer(missing_values=-1, strategy='median'),
+                          RandomForestClassifier(n_estimators=100, random_state=1))
+    scores = cross_val_score(model, features, labels, cv=10, scoring='roc_auc')
+    return scores
+
+# Preprocessing pipeline: imputation and normalization
 def pre_pipe(trainFeatures, trainLabels, testFeatures):
-    #-----------imputation------------
-     # Handle missing values in the training and test sets
+    # Imputation
     median_imputer = SimpleImputer(missing_values=-1, strategy='median')
-    # Impute missing values in the training features
     trainFeatures_imputed = median_imputer.fit_transform(trainFeatures)
-    # Impute missing values in the test features
     testFeatures_imputed = median_imputer.transform(testFeatures)
 
-    #-----------standardization------------
-
-
-    #-----------normalization---------
-    # Normalize the data using PowerTransformer for both training and test sets
-    
+    # Normalization using PowerTransformer
     scaler = PowerTransformer(method='yeo-johnson')
-    # Scale and transform the training features
     trainFeatures_transformed = scaler.fit_transform(trainFeatures_imputed)
-    # Transform the test features based on the training set scaling
     testFeatures_transformed = scaler.transform(testFeatures_imputed)
-    
-    #-----------feature reduction---------
-    lda = LinearDiscriminantAnalysis(n_components=1)
-    X_train_lda = lda.fit_transform(trainFeatures_transformed, trainLabels)
-    X_test_lda = lda.transform(testFeatures_transformed)
-    
-    return X_train_lda, X_test_lda
 
+    return trainFeatures_transformed, testFeatures_transformed
 
-def predictTest(trainFeatures,trainLabels,testFeatures):
-    #Get the processed data
+# Predict test results using a RandomForestClassifier
+def predictTest(trainFeatures, trainLabels, testFeatures):
     trainFeatures_processed, testFeatures_processed = pre_pipe(trainFeatures, trainLabels, testFeatures)
-
-    # Initialize and train a Logistic Regression classifier
-    classifier = SVC(kernel='rbf', C = 10, random_state=1)
+    classifier = RandomForestClassifier(n_estimators=300, random_state=1)
     classifier.fit(trainFeatures_processed, trainLabels)
-
-    # Make predictions on the test features
-    predictions = classifier.predict(testFeatures_processed)
-    
-    return predictions
+    # Use predict_proba for probability outputs
+    testOutputs = classifier.predict_proba(testFeatures_processed)[:,1]
+    return testOutputs
 
 if __name__ == "__main__":
-    # Set random seed for reproducibility
     np.random.seed(1)
     desiredFPR = 0.01
 
-    # Import data and shuffle it
+    # Load and shuffle data
     data = np.loadtxt('spamTrain1.csv', delimiter=',')
     shuffleIndex = np.arange(np.shape(data)[0])
     np.random.shuffle(shuffleIndex)
-    
-    # Split the data into features and labels
     data = data[shuffleIndex, :]
+    
+    # Split data into features and labels
     features = data[:, :-1]
-    targets = data[:, -1]
-    
-    # Split the data into training and test sets
-    X_train, X_test, y_train, y_test = train_test_split(features, targets, test_size=0.5, random_state=1)
-    
-    # Call the predictTest function
+    labels = data[:, -1]
+
+    # 10-fold cross-validation to compute AUC
+    print("10-fold cross-validation mean AUC: ", np.mean(aucCV(features, labels)))
+
+    # Split data into train and test sets
+    X_train, X_test, y_train, y_test = train_test_split(features, labels, test_size=0.5, random_state=1)
+
+    # Make predictions
     predictions = predictTest(X_train, y_train, X_test)
-    
-    # Evaluate the classifier accuracy
-    accuracy = accuracy_score(y_test, predictions)
-    print(f"Accuracy: {accuracy:.4f}")
-    
-    # Get probabilities for class 1 and calculate AUC
-    aucTestRun = roc_auc_score(y_test,predictions)
-    tprAtDesiredFPR,fpr,tpr = tprAtFPR(y_test,predictions,desiredFPR)
 
-    report = classification_report(y_test, predictions)
+    aucTestRun = roc_auc_score(y_test, predictions)
+    tprAtDesiredFPR, fpr, tpr = tprAtFPR(y_test, predictions, desiredFPR)
 
-    plt.plot(fpr,tpr)
+    # Generate classification report
+    report = classification_report(y_test, (predictions > 0.5).astype(int))
 
+    # Plot ROC curve
+    plt.plot(fpr, tpr)
     print(f'Test set AUC: {aucTestRun}')
     print(f'TPR at FPR = {desiredFPR}: {tprAtDesiredFPR}')
     print("Classification Report:\n", report)
     plt.xlabel('False positive rate')
     plt.ylabel('True positive rate')
-    plt.title('ROC curve for spam detector')    
+    plt.title('ROC curve for spam detector')
+    plt.show()
+    
+    # Examine outputs compared to labels
+    sortIndex = np.argsort(y_test)
+    nTestExamples = y_test.size
+    plt.subplot(2, 1, 1)
+    plt.plot(np.arange(nTestExamples), y_test[sortIndex], 'b.')
+    plt.xlabel('Sorted example number')
+    plt.ylabel('Target')
+    plt.subplot(2, 1, 2)
+    plt.plot(np.arange(nTestExamples), predictions[sortIndex], 'r.')
+    plt.xlabel('Sorted example number')
+    plt.ylabel('Output (predicted target)')
     plt.show()

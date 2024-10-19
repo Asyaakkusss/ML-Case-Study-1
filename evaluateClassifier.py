@@ -8,11 +8,11 @@ Script used to evaluate classifier accuracy
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_auc_score,roc_curve
-from forest_model import predictTest
+from model import predictTest as predict
 
 desiredFPR = 0.01
 trainDataFilename = 'spamTrain1.csv'
-testDataFilename = 'spamTrain2.csv'
+testDataFilename = '/Users/noahh/Downloads/spamTrain2.csv'
 #testDataFilename = 'spamTest.csv'
 
 def tprAtFPR(labels,outputs,desiredFPR):
