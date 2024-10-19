@@ -4,8 +4,9 @@ from sklearn.impute import SimpleImputer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.pipeline import make_pipeline
 from sklearn.model_selection import cross_val_score, train_test_split
-from sklearn.metrics import roc_auc_score, accuracy_score, roc_curve, classification_report
-from sklearn.preprocessing import PowerTransformer
+from sklearn.metrics import roc_auc_score, roc_curve, classification_report
+from sklearn.preprocessing import PowerTransformer, StandardScaler
+from sklearn.model_selection import GridSearchCV
 
 
 # Evaluate true positive rate at a specific false positive rate
@@ -34,19 +35,37 @@ def pre_pipe(trainFeatures, trainLabels, testFeatures):
     testFeatures_imputed = median_imputer.transform(testFeatures)
     
     # Normalization using PowerTransformer
-    scaler = PowerTransformer(method='yeo-johnson')
+    scaler = StandardScaler()
     trainFeatures_transformed = scaler.fit_transform(trainFeatures_imputed)
     testFeatures_transformed = scaler.transform(testFeatures_imputed)
 
-    return trainFeatures_imputed, testFeatures_imputed
+    return trainFeatures_transformed, testFeatures_transformed
 
 # Predict test results using a RandomForestClassifier
 def predictTest(trainFeatures, trainLabels, testFeatures):
+    #processed data
     trainFeatures_processed, testFeatures_processed = pre_pipe(trainFeatures, trainLabels, testFeatures)
-    classifier = RandomForestClassifier(n_estimators=300, random_state=1)
-    classifier.fit(trainFeatures_processed, trainLabels)
+    
+    #GridSearchCV hyperparameters:
+    hyperparameters = {
+    'n_estimators': [100, 200, 300],
+    'criterion': ['gini', 'entropy', 'log_loss'],
+    'max_depth': [None, 10, 20],
+    'min_samples_split': [2, 5],
+    'min_samples_leaf': [1, 2],
+    'max_features': ['sqrt', 'log2']    
+    }
+
+    classifier = RandomForestClassifier(random_state=1)
+
+    gridSearch = GridSearchCV(classifier, hyperparameters, cv=5, scoring='roc_auc', n_jobs=-1)
+    gridSearch.fit(trainFeatures_processed, trainLabels)
+    best_forest = gridSearch.best_estimator_
+
     # Use predict_proba for probability outputs
-    testOutputs = classifier.predict_proba(testFeatures_processed)[:,1]
+    testOutputs = best_forest.predict_proba(testFeatures_processed)[:,1]
+    print(f"Best hyperparameters {gridSearch.best_params_}")
+
     return testOutputs
 
 if __name__ == "__main__":
