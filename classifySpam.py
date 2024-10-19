@@ -32,12 +32,12 @@ def pre_pipe(trainFeatures, trainLabels, testFeatures):
     median_imputer = SimpleImputer(missing_values=-1, strategy='median')
     trainFeatures_imputed = median_imputer.fit_transform(trainFeatures)
     testFeatures_imputed = median_imputer.transform(testFeatures)
-    '''
+    
     # Normalization using PowerTransformer
     scaler = PowerTransformer(method='yeo-johnson')
     trainFeatures_transformed = scaler.fit_transform(trainFeatures_imputed)
     testFeatures_transformed = scaler.transform(testFeatures_imputed)
-'''
+
     return trainFeatures_imputed, testFeatures_imputed
 
 # Predict test results using a RandomForestClassifier
