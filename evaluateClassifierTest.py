@@ -8,12 +8,12 @@ Script used to evaluate classifier accuracy
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_auc_score,roc_curve
-from classifySpam import predictTest as predict
+from classifySpam import predictTest
 
 desiredFPR = 0.01
-trainDataFilename = 'spamTrain1.csv'
-testDataFilename = '/Users/noahh/Downloads/spamTrain2.csv'
-#testDataFilename = 'spamTest.csv'
+train1DataFilename = 'spamTrain1.csv'
+train2DataFilename = 'spamTrain2.csv'
+testDataFilename = 'spamTest.csv'
 
 def tprAtFPR(labels,outputs,desiredFPR):
     fpr,tpr,thres = roc_curve(labels,outputs)
@@ -28,7 +28,9 @@ def tprAtFPR(labels,outputs,desiredFPR):
              + tprBelow)
     return tprAt,fpr,tpr
 
-trainData = np.loadtxt(trainDataFilename,delimiter=',')
+train1Data = np.loadtxt(train1DataFilename,delimiter=',')
+train2Data = np.loadtxt(train2DataFilename,delimiter=',')
+trainData = np.r_[train1Data,train2Data]
 testData = np.loadtxt(testDataFilename,delimiter=',')
 
 # Randomly shuffle rows of training and test sets then separate labels
@@ -45,7 +47,7 @@ testData = testData[shuffleIndex,:]
 testFeatures = testData[:,:-1]
 testLabels = testData[:,-1]
 
-testOutputs = predict(trainFeatures,trainLabels,testFeatures)
+testOutputs = predictTest(trainFeatures,trainLabels,testFeatures)
 aucTestRun = roc_auc_score(testLabels,testOutputs)
 tprAtDesiredFPR,fpr,tpr = tprAtFPR(testLabels,testOutputs,desiredFPR)
 
