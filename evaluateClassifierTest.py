@@ -8,12 +8,12 @@ Script used to evaluate classifier accuracy
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_auc_score,roc_curve
-from classifySpam import predictTest
+from anovarfestudy import predictTest
 
 desiredFPR = 0.01
-train1DataFilename = 'spamTrain1.csv'
-train2DataFilename = 'spamTrain2.csv'
-testDataFilename = 'spamTest.csv'
+trainDataFilename = 'spamTrain1.csv'
+testDataFilename = 'spamTrain2.csv'
+#testDataFilename = 'spamTest.csv'
 
 def tprAtFPR(labels,outputs,desiredFPR):
     fpr,tpr,thres = roc_curve(labels,outputs)
@@ -28,10 +28,9 @@ def tprAtFPR(labels,outputs,desiredFPR):
              + tprBelow)
     return tprAt,fpr,tpr
 
-train1Data = np.loadtxt(train1DataFilename,delimiter=',')
-train2Data = np.loadtxt(train2DataFilename,delimiter=',')
-trainData = np.r_[train1Data,train2Data]
+trainData = np.loadtxt(trainDataFilename,delimiter=',')
 testData = np.loadtxt(testDataFilename,delimiter=',')
+
 
 # Randomly shuffle rows of training and test sets then separate labels
 # (last column)
