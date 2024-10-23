@@ -1,6 +1,7 @@
-#import classifySpam as classify
-#import evaluateClassifier as eval
+import classifySpam as classify
+import evaluateClassifier as eval
 import pandas as pd
+from sklearn.impute import SimpleImputer
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 
@@ -8,6 +9,9 @@ import matplotlib.pyplot as plt
 email_data = pd.read_csv('spamTrain1.csv')
 features = email_data.iloc[:, :-1]
 labels = email_data.iloc[:, -1]
+
+median_imputer = SimpleImputer(missing_values=-1, strategy='median')
+features_imputed = median_imputer.fit_transform(features)
 
 data_visualized = TSNE(random_state=1).fit_transform(features)
 

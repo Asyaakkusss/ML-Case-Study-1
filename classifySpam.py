@@ -8,7 +8,6 @@ from sklearn.metrics import roc_auc_score, roc_curve, classification_report
 from sklearn.preprocessing import PowerTransformer, StandardScaler
 from sklearn.model_selection import GridSearchCV
 
-
 # Evaluate true positive rate at a specific false positive rate
 def tprAtFPR(labels, outputs, desiredFPR):
     fpr, tpr, _ = roc_curve(labels, outputs)
@@ -38,7 +37,7 @@ def pre_pipe(trainFeatures, trainLabels, testFeatures):
     scaler = StandardScaler()
     trainFeatures_transformed = scaler.fit_transform(trainFeatures_imputed)
     testFeatures_transformed = scaler.transform(testFeatures_imputed)
-
+    
     return trainFeatures_transformed, testFeatures_transformed
 
 # Predict test results using a RandomForestClassifier
