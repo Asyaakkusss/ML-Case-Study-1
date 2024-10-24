@@ -8,7 +8,7 @@ Script used to evaluate classifier accuracy
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_auc_score,roc_curve
-from anovarfestudy import predictTest
+from svm_model import predictTest
 
 desiredFPR = 0.01
 trainDataFilename = 'spamTrain1.csv'
